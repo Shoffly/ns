@@ -19,7 +19,7 @@ def app():
 
     # Supabase client setup
     supabase_url = 'https://zkkjvqlrfaorjwwcnlkz.supabase.co'
-    supabase_key = 'your_supabase_key_here'
+    supabase_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2p2cWxyZmFvcmp3d2NubGt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY0NDg5NjIsImV4cCI6MjAzMjAyNDk2Mn0.nrhg7Dd7Z7hNyd6RElwzY0URzYN-UW5BiMYdvOmzk2g'
     supabase: Client = create_client(supabase_url, supabase_key)
 
     # Notification login and sending
