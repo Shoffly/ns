@@ -10,7 +10,7 @@ from supabase import create_client, Client
 from flask_cors import CORS
 import logging
 
-def create_app():
+def app():
     app = Flask(__name__)
     CORS(app)  # Enable CORS for all routes
 
@@ -151,5 +151,5 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    app = create_app()
+    app = app()
     app.run(debug=True)
