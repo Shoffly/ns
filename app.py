@@ -7,9 +7,11 @@ from email.message import EmailMessage
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from supabase import create_client, Client
+from flask_cors import CORS
 
 def app():
     app = Flask(__name__)
+    CORS(app)  # Enable CORS for all routes
 
     # Supabase client setup
     supabase_url = 'https://zkkjvqlrfaorjwwcnlkz.supabase.co'
