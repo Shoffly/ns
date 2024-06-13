@@ -31,6 +31,8 @@ def app():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
     }
 
+    # Define session and session_lock at the global level
+    global session
     session = requests.Session()
     session_lock = threading.Lock()
 
@@ -50,7 +52,6 @@ def app():
             logging.error(f"Error logging notification: {e}")
 
     def login():
-        global session
         with session_lock:
             payload = {
                 "email": CIL_EMAIL,
