@@ -84,7 +84,7 @@ def app():
         try:
             email_sender = 'sunnymoh44@gmail.com'
             email_p = 'qywokurzqrfpcufp'
-            email_to = 'yara.elkassabi@cilantrocafe.net'
+            email_to = 'mohammed09ahmed@gmail.com'
             subject = f'Auto Notification report - {ncamp}'
             body = f'''
            <html>
