@@ -128,7 +128,7 @@ def app():
     def send_notification_endpoint():
         try:
             data = request.json
-            user_ids = data.get('user_ids', [])
+            user = data.get('user', [])
             ntitle = data.get('title')
             ncontent = data.get('content')
             ncamp = data.get('campaign')
@@ -136,15 +136,15 @@ def app():
             if not login():
                 return jsonify({'error': 'Login failed'}), 401
 
-            def process_notification(user_id):
-                send_notification(user_id, ntitle, ncontent, ncamp)
+            def process_notification(user):
+                send_notification(user, ntitle, ncontent, ncamp)
 
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(process_notification, user_id) for user_id in user_ids]
+                futures = [executor.submit(process_notification, user) for user in user]
                 for future in as_completed(futures):
                     future.result()
 
-            sendemail(ncamp, ntitle, ncontent, len(user_ids))
+            sendemail(ncamp, ntitle, ncontent, len(user["user_id"]))
             return jsonify({'message': 'Notifications sent successfully'})
         except Exception as e:
             logging.error(f"Error in send_notification_endpoint: {e}")
