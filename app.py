@@ -10,6 +10,7 @@ from supabase import create_client, Client
 from flask_cors import CORS
 import logging
 
+
 def app():
     app = Flask(__name__)
     CORS(app)  # Enable CORS for all routes
@@ -28,7 +29,8 @@ def app():
     CIL_EMAIL = "admin@cilantro.com"
     CIL_PASSWORD = "admin@123"
     HEADER = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
+        "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
     }
 
     # Define session and session_lock at the global level
@@ -45,7 +47,8 @@ def app():
                 "n_content": content,
                 "sent_at": datetime.utcnow().isoformat()
             }
-            response = supabase.table('notification_recipients').insert(data).execute()
+            response = supabase.table('notification_recipients').insert(
+                data).execute()
             logging.info(f"Notification sent to user {userid} successfully.")
             logging.debug(response)
         except Exception as e:
@@ -58,14 +61,17 @@ def app():
                 "password": CIL_PASSWORD,
                 "timezone": "Africa/Cairo"
             }
-            login_response = session.post(url=CIL_LOGIN_URL, data=payload, headers=HEADER)
+            login_response = session.post(url=CIL_LOGIN_URL,
+                                          data=payload,
+                                          headers=HEADER)
             if "Invalid email or password" in login_response.text:
                 logging.error("Login failed")
                 return False
             return True
 
     def send_notification(custid, ntitle, ncontent, ncamp):
-        personalized_content = ncontent.replace("{first_name}", user["first_name"])
+        personalized_content = ncontent.replace("{first_name}",
+                                                user["first_name"])
         personalized_title = ntitle.replace("{first_name}", user["first_name"])
         payload = {
             "notify_type": "Push_Notification",
@@ -75,9 +81,13 @@ def app():
             "user_ids[]": user["user_id"],
         }
         with session_lock:
-            create_notif_response = session.post(url=CIL_NOTIF_URL, data=payload, headers=HEADER)
+            create_notif_response = session.post(url=CIL_NOTIF_URL,
+                                                 data=payload,
+                                                 headers=HEADER)
             if create_notif_response.status_code != 200:
-                logging.error(f"Error creating notification: {create_notif_response.text}")
+                logging.error(
+                    f"Error creating notification: {create_notif_response.text}"
+                )
             else:
                 log_notification(custid, ntitle, ncontent, ncamp)
 
@@ -118,7 +128,8 @@ def app():
             em['Subject'] = subject
             em.add_alternative(body, subtype='html')
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465,
+                                  context=context) as smtp:
                 smtp.login(email_sender, email_p)
                 smtp.sendmail(email_sender, email_to, em.as_string())
             logging.info('Email sent successfully!')
@@ -132,19 +143,19 @@ def app():
             if not isinstance(data, dict):
                 logging.error("Received data is not a dictionary")
                 return jsonify({'error': 'Invalid input format'}), 400
-    
+
             users = data.get('users', [])
             if not isinstance(users, list):
                 logging.error("Users data is not a list")
                 return jsonify({'error': 'Invalid users format'}), 400
-    
+
             ntitle = data.get('title')
             ncontent = data.get('content')
             ncamp = data.get('campaign')
-    
+
             if not login():
                 return jsonify({'error': 'Login failed'}), 401
-    
+
             # Check if each user in the users list is a dictionary with the required keys
             for user in users:
                 if not isinstance(user, dict):
@@ -152,23 +163,28 @@ def app():
                     return jsonify({'error': 'Invalid user format'}), 400
                 if 'user_id' not in user or 'first_name' not in user:
                     logging.error("User dictionary missing required keys")
-                    return jsonify({'error': 'User data missing required keys'}), 400
-    
+                    return jsonify(
+                        {'error': 'User data missing required keys'}), 400
+
             def process_notification(user):
                 send_notification(user, ntitle, ncontent, ncamp)
-    
+
             with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [executor.submit(process_notification, user) for user in users]
+                futures = [
+                    executor.submit(process_notification, user)
+                    for user in users
+                ]
                 for future in as_completed(futures):
                     future.result()
-    
+
             sendemail(ncamp, ntitle, ncontent, len(users))
             return jsonify({'message': 'Notifications sent successfully'})
         except Exception as e:
             logging.error(f"Error in send_notification_endpoint: {e}")
             return jsonify({'error': 'Internal server error'}), 500
-    
-        return app
+
+    return app
+
 
 if __name__ == '__main__':
     app = app()
