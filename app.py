@@ -149,5 +149,8 @@ def send_notification_endpoint():
         logging.error(f"Error in send_notification_endpoint: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+        return app
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app = app()
+    app.run(debug=True) 
