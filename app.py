@@ -12,7 +12,7 @@ import logging
 
 def app():
     app = Flask(__name__)
-    CORS(app)  # Enable CORS for all routes
+    CORS(app, resources={r"/send-notification": {"origins": "*"}})  # Enable CORS for all routes
     
     # Set up logging
     logging.basicConfig(level=logging.DEBUG)
@@ -28,14 +28,12 @@ def app():
     CIL_EMAIL = "admin@cilantro.com"
     CIL_PASSWORD = "admin@123"
     HEADER = {
-        "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
     }
     
     # Define session and session_lock at the global level
     session = requests.Session()
     session_lock = threading.Lock()
-    
     
     def log_notification(userid, title, content, ncamp):
         try:
@@ -46,13 +44,11 @@ def app():
                 "n_content": content,
                 "sent_at": datetime.utcnow().isoformat()
             }
-            response = supabase.table('notification_recipients').insert(
-                data).execute()
+            response = supabase.table('notification_recipients').insert(data).execute()
             logging.info(f"Notification sent to user {userid} successfully.")
             logging.debug(response)
         except Exception as e:
             logging.error(f"Error logging notification: {e}")
-    
     
     def login():
         with session_lock:
@@ -61,14 +57,11 @@ def app():
                 "password": CIL_PASSWORD,
                 "timezone": "Africa/Cairo"
             }
-            login_response = session.post(url=CIL_LOGIN_URL,
-                                          data=payload,
-                                          headers=HEADER)
+            login_response = session.post(url=CIL_LOGIN_URL, data=payload, headers=HEADER)
             if "Invalid email or password" in login_response.text:
                 logging.error("Login failed")
                 return False
             return True
-    
     
     def send_notification(user, ntitle, ncontent, ncamp):
         personalized_content = ncontent.replace("{first_name}", user["first_name"])
@@ -81,16 +74,11 @@ def app():
             "user_ids[]": user["user_id"],
         }
         with session_lock:
-            create_notif_response = session.post(url=CIL_NOTIF_URL,
-                                                 data=payload,
-                                                 headers=HEADER)
+            create_notif_response = session.post(url=CIL_NOTIF_URL, data=payload, headers=HEADER)
             if create_notif_response.status_code != 200:
-                logging.error(
-                    f"Error creating notification: {create_notif_response.text}")
+                logging.error(f"Error creating notification: {create_notif_response.text}")
             else:
-                log_notification(user["user_id"], personalized_title,
-                                 personalized_content, ncamp)
-    
+                log_notification(user["user_id"], personalized_title, personalized_content, ncamp)
     
     def sendemail(ncamp, ntitle, ncontent, nsize):
         try:
@@ -136,6 +124,17 @@ def app():
         except Exception as e:
             logging.error(f"Error sending email: {e}")
     
+    def process_notifications(users, ntitle, ncontent, ncamp):
+        if not login():
+            logging.error('Login failed')
+            return
+    
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(send_notification, user, ntitle, ncontent, ncamp) for user in users]
+            for future in as_completed(futures):
+                future.result()
+    
+        sendemail(ncamp, ntitle, ncontent, len(users))
     
     @app.route('/send-notification', methods=['POST'])
     def send_notification_endpoint():
@@ -154,9 +153,6 @@ def app():
             ncontent = data.get('content')
             ncamp = data.get('campaign')
     
-            if not login():
-                return jsonify({'error': 'Login failed'}), 401
-    
             # Check if each user in the users list is a dictionary with the required keys
             for user in users:
                 if not isinstance(user, dict):
@@ -164,25 +160,15 @@ def app():
                     return jsonify({'error': 'Invalid user format'}), 400
                 if 'user_id' not in user or 'first_name' not in user:
                     logging.error("User dictionary missing required keys")
-                    return jsonify({'error':
-                                    'User data missing required keys'}), 400
+                    return jsonify({'error': 'User data missing required keys'}), 400
     
-            def process_notification(user):
-                send_notification(user, ntitle, ncontent, ncamp)
+            # Run the notification process in a separate thread
+            threading.Thread(target=process_notifications, args=(users, ntitle, ncontent, ncamp)).start()
     
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                futures = [
-                    executor.submit(process_notification, user) for user in users
-                ]
-                for future in as_completed(futures):
-                    future.result()
-    
-            sendemail(ncamp, ntitle, ncontent, len(users))
-            return jsonify({'message': 'Notifications sent successfully'})
+            return jsonify({'message': 'Notification process started'}), 202
         except Exception as e:
             logging.error(f"Error in send_notification_endpoint: {e}")
             return jsonify({'error': 'Internal server error'}), 500
-    
     return app
     
 
