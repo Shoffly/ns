@@ -10,19 +10,18 @@ from supabase import create_client, Client
 from flask_cors import CORS
 import logging
 
-
 def app():
     app = Flask(__name__)
     CORS(app)  # Enable CORS for all routes
-
+    
     # Set up logging
     logging.basicConfig(level=logging.DEBUG)
-
+    
     # Supabase client setup
     supabase_url = 'https://zkkjvqlrfaorjwwcnlkz.supabase.co'
     supabase_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpra2p2cWxyZmFvcmp3d2NubGt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY0NDg5NjIsImV4cCI6MjAzMjAyNDk2Mn0.nrhg7Dd7Z7hNyd6RElwzY0URzYN-UW5BiMYdvOmzk2g'
     supabase: Client = create_client(supabase_url, supabase_key)
-
+    
     # Notification login and sending
     CIL_LOGIN_URL = 'https://appadmin.cilantro.cafe/authpanel/login/checklogin'
     CIL_NOTIF_URL = 'https://appadmin.cilantro.cafe/authpanel/notification/add'
@@ -32,12 +31,12 @@ def app():
         "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4515.107 Safari/537.36"
     }
-
+    
     # Define session and session_lock at the global level
-    global session
     session = requests.Session()
     session_lock = threading.Lock()
-
+    
+    
     def log_notification(userid, title, content, ncamp):
         try:
             data = {
@@ -53,7 +52,8 @@ def app():
             logging.debug(response)
         except Exception as e:
             logging.error(f"Error logging notification: {e}")
-
+    
+    
     def login():
         with session_lock:
             payload = {
@@ -68,15 +68,15 @@ def app():
                 logging.error("Login failed")
                 return False
             return True
-
-    def send_notification(custid, ntitle, ncontent, ncamp):
-        personalized_content = ncontent.replace("{first_name}",
-                                                user["first_name"])
+    
+    
+    def send_notification(user, ntitle, ncontent, ncamp):
+        personalized_content = ncontent.replace("{first_name}", user["first_name"])
         personalized_title = ntitle.replace("{first_name}", user["first_name"])
         payload = {
             "notify_type": "Push_Notification",
             "title": personalized_title,
-            "content": ncontent,
+            "content": personalized_content,
             "user_type": "Customer",
             "user_ids[]": user["user_id"],
         }
@@ -86,11 +86,12 @@ def app():
                                                  headers=HEADER)
             if create_notif_response.status_code != 200:
                 logging.error(
-                    f"Error creating notification: {create_notif_response.text}"
-                )
+                    f"Error creating notification: {create_notif_response.text}")
             else:
-                log_notification(custid, ntitle, ncontent, ncamp)
-
+                log_notification(user["user_id"], personalized_title,
+                                 personalized_content, ncamp)
+    
+    
     def sendemail(ncamp, ntitle, ncontent, nsize):
         try:
             email_sender = 'sunnymoh44@gmail.com'
@@ -128,14 +129,14 @@ def app():
             em['Subject'] = subject
             em.add_alternative(body, subtype='html')
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465,
-                                  context=context) as smtp:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
                 smtp.login(email_sender, email_p)
                 smtp.sendmail(email_sender, email_to, em.as_string())
             logging.info('Email sent successfully!')
         except Exception as e:
             logging.error(f"Error sending email: {e}")
-
+    
+    
     @app.route('/send-notification', methods=['POST'])
     def send_notification_endpoint():
         try:
@@ -143,19 +144,19 @@ def app():
             if not isinstance(data, dict):
                 logging.error("Received data is not a dictionary")
                 return jsonify({'error': 'Invalid input format'}), 400
-
+    
             users = data.get('users', [])
             if not isinstance(users, list):
                 logging.error("Users data is not a list")
                 return jsonify({'error': 'Invalid users format'}), 400
-
+    
             ntitle = data.get('title')
             ncontent = data.get('content')
             ncamp = data.get('campaign')
-
+    
             if not login():
                 return jsonify({'error': 'Login failed'}), 401
-
+    
             # Check if each user in the users list is a dictionary with the required keys
             for user in users:
                 if not isinstance(user, dict):
@@ -163,28 +164,27 @@ def app():
                     return jsonify({'error': 'Invalid user format'}), 400
                 if 'user_id' not in user or 'first_name' not in user:
                     logging.error("User dictionary missing required keys")
-                    return jsonify(
-                        {'error': 'User data missing required keys'}), 400
-
+                    return jsonify({'error':
+                                    'User data missing required keys'}), 400
+    
             def process_notification(user):
                 send_notification(user, ntitle, ncontent, ncamp)
-
+    
             with ThreadPoolExecutor(max_workers=10) as executor:
                 futures = [
-                    executor.submit(process_notification, user)
-                    for user in users
+                    executor.submit(process_notification, user) for user in users
                 ]
                 for future in as_completed(futures):
                     future.result()
-
+    
             sendemail(ncamp, ntitle, ncontent, len(users))
             return jsonify({'message': 'Notifications sent successfully'})
         except Exception as e:
             logging.error(f"Error in send_notification_endpoint: {e}")
             return jsonify({'error': 'Internal server error'}), 500
-
+    
     return app
-
+    
 
 if __name__ == '__main__':
     app = app()
