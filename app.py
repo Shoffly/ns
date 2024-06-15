@@ -90,34 +90,35 @@ def app():
            <html>
   <head>
     <style>
-      body {
+      body {{
+          font-family: "Open Sans", sans-serif;
         background-image: url('https://firebasestorage.googleapis.com/v0/b/shoffly.appspot.com/o/iOS-13-iPhone-11-Pro-wallpaper-inspired-ar72014-Desktop.png?alt=media&token=deb3ac09-b24f-46bb-8b4f-4f4178c4db71');
         background-size: cover;
         background-position: center;
         background-color: #333;
         color: #fff;
-      }
-      .card {
+      }}
+      .card {{
         background-color: rgba(0, 0, 0, 0.8);
         padding: 2rem;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         width: 300px;
         margin: 2rem auto;
-      }
-      .card p {
+      }}
+      .card p {{
         margin-bottom: 0.5rem;
-      }
-      .card strong {
+      }}
+      .card strong {{
         font-weight: 700;
-      }
-      .card a {
+      }}
+      .card a {{
         color: #4caf50;
         text-decoration: none;
-      }
-      .card a:hover {
+      }}
+      .card a:hover {{
         text-decoration: underline;
-      }
+      }}
     </style>
   </head>
   <body>
