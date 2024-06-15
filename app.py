@@ -91,7 +91,6 @@ def app():
   <head>
     <style>
       body {
-        font-family: "Poppins", sans-serif;
         background-image: url('https://firebasestorage.googleapis.com/v0/b/shoffly.appspot.com/o/iOS-13-iPhone-11-Pro-wallpaper-inspired-ar72014-Desktop.png?alt=media&token=deb3ac09-b24f-46bb-8b4f-4f4178c4db71');
         background-size: cover;
         background-position: center;
