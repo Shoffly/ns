@@ -125,50 +125,49 @@ def app():
             logging.error(f"Error sending email: {e}")
 
     @app.route('/send-notification', methods=['POST'])
-    @app.route('/send-notification', methods=['POST'])
-def send_notification_endpoint():
-    try:
-        data = request.json
-        if not isinstance(data, dict):
-            logging.error("Received data is not a dictionary")
-            return jsonify({'error': 'Invalid input format'}), 400
-
-        users = data.get('users', [])
-        if not isinstance(users, list):
-            logging.error("Users data is not a list")
-            return jsonify({'error': 'Invalid users format'}), 400
-
-        ntitle = data.get('title')
-        ncontent = data.get('content')
-        ncamp = data.get('campaign')
-
-        if not login():
-            return jsonify({'error': 'Login failed'}), 401
-
-        # Check if each user in the users list is a dictionary with the required keys
-        for user in users:
-            if not isinstance(user, dict):
-                logging.error("User data is not a dictionary")
-                return jsonify({'error': 'Invalid user format'}), 400
-            if 'user_id' not in user or 'first_name' not in user:
-                logging.error("User dictionary missing required keys")
-                return jsonify({'error': 'User data missing required keys'}), 400
-
-        def process_notification(user):
-            send_notification(user, ntitle, ncontent, ncamp)
-
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [executor.submit(process_notification, user) for user in users]
-            for future in as_completed(futures):
-                future.result()
-
-        sendemail(ncamp, ntitle, ncontent, len(users))
-        return jsonify({'message': 'Notifications sent successfully'})
-    except Exception as e:
-        logging.error(f"Error in send_notification_endpoint: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-    return app
+    def send_notification_endpoint():
+        try:
+            data = request.json
+            if not isinstance(data, dict):
+                logging.error("Received data is not a dictionary")
+                return jsonify({'error': 'Invalid input format'}), 400
+    
+            users = data.get('users', [])
+            if not isinstance(users, list):
+                logging.error("Users data is not a list")
+                return jsonify({'error': 'Invalid users format'}), 400
+    
+            ntitle = data.get('title')
+            ncontent = data.get('content')
+            ncamp = data.get('campaign')
+    
+            if not login():
+                return jsonify({'error': 'Login failed'}), 401
+    
+            # Check if each user in the users list is a dictionary with the required keys
+            for user in users:
+                if not isinstance(user, dict):
+                    logging.error("User data is not a dictionary")
+                    return jsonify({'error': 'Invalid user format'}), 400
+                if 'user_id' not in user or 'first_name' not in user:
+                    logging.error("User dictionary missing required keys")
+                    return jsonify({'error': 'User data missing required keys'}), 400
+    
+            def process_notification(user):
+                send_notification(user, ntitle, ncontent, ncamp)
+    
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = [executor.submit(process_notification, user) for user in users]
+                for future in as_completed(futures):
+                    future.result()
+    
+            sendemail(ncamp, ntitle, ncontent, len(users))
+            return jsonify({'message': 'Notifications sent successfully'})
+        except Exception as e:
+            logging.error(f"Error in send_notification_endpoint: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+    
+        return app
 
 if __name__ == '__main__':
     app = app()
