@@ -66,9 +66,10 @@ def app():
 
     def send_notification(custid, ntitle, ncontent, ncamp):
         personalized_content = ncontent.replace("{first_name}", user["first_name"])
+        personalized_title = ntitle.replace("{first_name}", user["first_name"])
         payload = {
             "notify_type": "Push_Notification",
-            "title": ntitle,
+            "title": personalized_title,
             "content": ncontent,
             "user_type": "Customer",
             "user_ids[]": user["user_id"],
