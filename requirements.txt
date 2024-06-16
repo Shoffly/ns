@@ -3,3 +3,5 @@ requests
 supabase
 flask-cors
 gunicorn
+APScheduler
+pytz
