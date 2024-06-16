@@ -1,8 +1,5 @@
 Flask
-flask-cors
 requests
-smtplip
-email-validator
-pytz
-APScheduler
 supabase
+flask-cors
+gunicorn
