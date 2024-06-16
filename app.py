@@ -17,7 +17,11 @@ from pytz import timezone
 
 def app():
     app = Flask(__name__)
-    CORS(app, resources={r"/send-notification": {"origins": "*"}})  # Enable CORS for all routes
+    # Enable CORS for specific routes
+    CORS(app, resources={
+        r"/send-notification": {"origins": "*"},
+        r"/schedule-notification": {"origins": "*"}
+    })  # Allow all origins for both send-notification and schedule-notification
 
     # Set up logging
     logging.basicConfig(level=logging.DEBUG)
