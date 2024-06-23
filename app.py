@@ -202,6 +202,36 @@ def app():
         except Exception as e:
             logging.error(f"Error scheduling notification: {e}")
 
+
+
+
+    # Function to send the SMS
+    def send_sms(sms_text, user):
+        personalized_content = sms_text.replace("{first_name}", user["first_name"])
+        payload = {
+            'Username': 'CILANTRO',
+            'Password':'bJdY6HzXA9',
+            'SMSText': personalized_content,
+            'SMSLang': 'E',
+            'SMSSender': 'CILANTRO',
+            'SMSReceiver': user["user_number"]
+        }
+
+        try:
+            response = requests.post('https://smsvas.vlserv.com/KannelSending/service.asmx/SendSMSWithDLR', data=payload)
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.RequestException as e:
+            return str(e)
+
+    def process_sms(users, smscontent):
+        with ThreadPoolExecutor(max_workers=15) as executor:
+            futures = [executor.submit(send_sms, smscontent, user) for user in users]
+            for future in as_completed(futures):
+                future.result()
+
+
+
     @app.route('/send-notification', methods=['POST'])
     def send_notification_endpoint():
         try:
@@ -265,6 +295,40 @@ def app():
             return jsonify({'message': 'Notification scheduled successfully'}), 202
         except Exception as e:
             logging.error(f"Error in schedule_notification_endpoint: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+    @app.route('/send-sms', methods=['POST'])
+    def send_sms_endpoint():
+        try:
+            data = request.json
+            if not isinstance(data, dict):
+                logging.error("Received data is not a dictionary")
+                return jsonify({'error': 'Invalid input format'}), 400
+
+            users = data.get('users', [])
+            if not isinstance(users, list):
+                logging.error("Users data is not a list")
+                return jsonify({'error': 'Invalid users format'}), 400
+
+
+            smscontent = data.get('smscontent')
+
+
+            # Check if each user in the users list is a dictionary with the required keys
+            for user in users:
+                if not isinstance(user, dict):
+                    logging.error("User data is not a dictionary")
+                    return jsonify({'error': 'Invalid user format'}), 400
+                if 'user_number' not in user or 'first_name' not in user:
+                    logging.error("User dictionary missing required keys")
+                    return jsonify({'error': 'User data missing required keys'}), 400
+
+            # Run the notification process in a separate thread
+            threading.Thread(target=process_sms, args=(users, smscontent)).start()
+
+            return jsonify({'message': 'SMS process started'}), 202
+        except Exception as e:
+            logging.error(f"Error in send_SMS_endpoint: {e}")
             return jsonify({'error': 'Internal server error'}), 500
 
     return app
