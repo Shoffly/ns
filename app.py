@@ -268,7 +268,7 @@ def app():
                 if not isinstance(user, dict):
                     logging.error("User data is not a dictionary")
                     return jsonify({'error': 'Invalid user format'}), 400
-                if 'user_id' not in user or 'first_name' not in user or 'fav_item' not in user:
+                if 'user_id' not in user or 'first_name' not in user:
                     logging.error("User dictionary missing required keys")
                     return jsonify({'error': 'User data missing required keys'}), 400
 
@@ -362,7 +362,7 @@ def app():
                 if not isinstance(user, dict):
                     logging.error("User data is not a dictionary")
                     return jsonify({'error': 'Invalid user format'}), 400
-                if 'user_number' not in user or 'first_name' not in user or 'fav_item' not in user:
+                if 'user_number' not in user or 'first_name' not in user:
                     logging.error("User dictionary missing required keys")
                     return jsonify({'error': 'User data missing required keys'}), 400
 
