@@ -83,7 +83,7 @@ def app():
         personalized_content = ncontent.replace("{first_name}", user["first_name"])
         personalized_contentf = personalized_content.replace("{fav_item}", user["fav_item"])
         personalized_title = ntitle.replace("{first_name}", user["first_name"])
-        personalized_titlef = personalized_title.replace("{first_name}", user["first_name"])
+        personalized_titlef = personalized_title.replace("{fav_item}", user["fav_item"])
         payload = {
             "notify_type": "Push_Notification",
             "title": personalized_titlef,
