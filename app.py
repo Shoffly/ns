@@ -20,7 +20,8 @@ def app():
     # Enable CORS for specific routes
     CORS(app, resources={
         r"/send-notification": {"origins": "*"},
-        r"/schedule-notification": {"origins": "*"}
+        r"/schedule-notification": {"origins": "*"},
+        r"/send-sms": {"origins": "*"}
     })  # Allow all origins for both send-notification and schedule-notification
 
     # Set up logging
