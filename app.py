@@ -15,6 +15,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.date import DateTrigger
 from pytz import timezone
 
+
 def app():
     app = Flask(__name__)
     # Enable CORS for specific routes
@@ -80,11 +81,13 @@ def app():
 
     def send_notification(user, ntitle, ncontent, ncamp):
         personalized_content = ncontent.replace("{first_name}", user["first_name"])
+        personalized_contentf = personalized_content.replace("{fav_item}", user["fav_item"])
         personalized_title = ntitle.replace("{first_name}", user["first_name"])
+        personalized_titlef = personalized_title.replace("{first_name}", user["first_name"])
         payload = {
             "notify_type": "Push_Notification",
-            "title": personalized_title,
-            "content": personalized_content,
+            "title": personalized_titlef,
+            "content": personalized_contentf,
             "user_type": "Customer",
             "user_ids[]": user["user_id"],
         }
@@ -204,23 +207,22 @@ def app():
         except Exception as e:
             logging.error(f"Error scheduling notification: {e}")
 
-
-
-
     # Function to send the SMS
     def send_sms(sms_text, user):
         personalized_content = sms_text.replace("{first_name}", user["first_name"])
+        personalized_contentf = personalized_content.replace("{fav_item}", user["fav_item"])
         payload = {
             'Username': 'CILANTRO',
-            'Password':'bJdY6HzXA9',
-            'SMSText': personalized_content,
+            'Password': 'bJdY6HzXA9',
+            'SMSText': personalized_contentf,
             'SMSLang': 'E',
             'SMSSender': 'CILANTRO',
             'SMSReceiver': user["user_number"]
         }
 
         try:
-            response = requests.post('https://smsvas.vlserv.com/KannelSending/service.asmx/SendSMSWithDLR', data=payload)
+            response = requests.post('https://smsvas.vlserv.com/KannelSending/service.asmx/SendSMSWithDLR',
+                                     data=payload)
             response.raise_for_status()
             return response.text
         except requests.exceptions.RequestException as e:
@@ -232,7 +234,6 @@ def app():
             for future in as_completed(futures):
                 future.result()
 
-        
     def schedule_sms(scheduled_time, users, ncontent):
         try:
             scheduler.add_job(
@@ -244,8 +245,6 @@ def app():
             logging.info(f"SMS scheduled for {scheduled_time} (Africa/Cairo)")
         except Exception as e:
             logging.error(f"Error scheduling SMS: {e}")
-
-
 
     @app.route('/send-notification', methods=['POST'])
     def send_notification_endpoint():
@@ -269,7 +268,7 @@ def app():
                 if not isinstance(user, dict):
                     logging.error("User data is not a dictionary")
                     return jsonify({'error': 'Invalid user format'}), 400
-                if 'user_id' not in user or 'first_name' not in user:
+                if 'user_id' not in user or 'first_name' not in user or 'fav_item' not in user:
                     logging.error("User dictionary missing required keys")
                     return jsonify({'error': 'User data missing required keys'}), 400
 
@@ -305,7 +304,8 @@ def app():
             ncontent = data.get('content')
             ncamp = data.get('campaign')
 
-            threading.Thread(target=schedule_notification, args=(scheduled_time, users, ntitle, ncontent, ncamp)).start()
+            threading.Thread(target=schedule_notification,
+                             args=(scheduled_time, users, ntitle, ncontent, ncamp)).start()
 
             return jsonify({'message': 'Notification scheduled successfully'}), 202
         except Exception as e:
@@ -332,9 +332,7 @@ def app():
                 logging.error("Users data is not a list")
                 return jsonify({'error': 'Invalid users format'}), 400
 
-            
             ncontent = data.get('smscontent')
-           
 
             threading.Thread(target=schedule_sms,
                              args=(scheduled_time, users, ncontent)).start()
@@ -357,16 +355,14 @@ def app():
                 logging.error("Users data is not a list")
                 return jsonify({'error': 'Invalid users format'}), 400
 
-
             smscontent = data.get('smscontent')
-
 
             # Check if each user in the users list is a dictionary with the required keys
             for user in users:
                 if not isinstance(user, dict):
                     logging.error("User data is not a dictionary")
                     return jsonify({'error': 'Invalid user format'}), 400
-                if 'user_number' not in user or 'first_name' not in user:
+                if 'user_number' not in user or 'first_name' not in user or 'fav_item' not in user:
                     logging.error("User dictionary missing required keys")
                     return jsonify({'error': 'User data missing required keys'}), 400
 
@@ -379,6 +375,7 @@ def app():
             return jsonify({'error': 'Internal server error'}), 500
 
     return app
+
 
 if __name__ == '__main__':
     app = app()
