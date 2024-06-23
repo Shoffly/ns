@@ -236,7 +236,7 @@ def app():
     def schedule_sms(scheduled_time, users, ncontent):
         try:
             scheduler.add_job(
-                process_notifications,
+                process_sms,
                 args=(users, ncontent),
                 trigger=DateTrigger(run_date=scheduled_time),
                 id=f'notification_sms_job_{scheduled_time}',
