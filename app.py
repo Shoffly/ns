@@ -21,7 +21,8 @@ def app():
     CORS(app, resources={
         r"/send-notification": {"origins": "*"},
         r"/schedule-notification": {"origins": "*"},
-        r"/send-sms": {"origins": "*"}
+        r"/send-sms": {"origins": "*"},
+        r"/schedule-sms": {"origins": "*"}
     })  # Allow all origins for both send-notification and schedule-notification
 
     # Set up logging
@@ -231,6 +232,19 @@ def app():
             for future in as_completed(futures):
                 future.result()
 
+        
+    def schedule_sms(scheduled_time, users, ncontent):
+        try:
+            scheduler.add_job(
+                process_notifications,
+                args=(users, ncontent),
+                trigger=DateTrigger(run_date=scheduled_time),
+                id=f'notification_sms_job_{scheduled_time}',
+            )
+            logging.info(f"SMS scheduled for {scheduled_time} (Africa/Cairo)")
+        except Exception as e:
+            logging.error(f"Error scheduling SMS: {e}")
+
 
 
     @app.route('/send-notification', methods=['POST'])
@@ -296,6 +310,38 @@ def app():
             return jsonify({'message': 'Notification scheduled successfully'}), 202
         except Exception as e:
             logging.error(f"Error in schedule_notification_endpoint: {e}")
+            return jsonify({'error': 'Internal server error'}), 500
+
+    @app.route('/schedule-sms', methods=['POST'])
+    def schedule_sms_endpoint():
+        try:
+            data = request.json
+            if not isinstance(data, dict):
+                logging.error("Received data is not a dictionary")
+                return jsonify({'error': 'Invalid input format'}), 400
+
+            scheduled_time_str = data.get('scheduled_time')
+            try:
+                scheduled_time = datetime.strptime(scheduled_time_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                logging.error("Invalid scheduled time format")
+                return jsonify({'error': 'Invalid scheduled time format, use YYYY-MM-DD HH:MM:SS'}), 400
+
+            users = data.get('users', [])
+            if not isinstance(users, list):
+                logging.error("Users data is not a list")
+                return jsonify({'error': 'Invalid users format'}), 400
+
+            
+            ncontent = data.get('smscontent')
+           
+
+            threading.Thread(target=schedule_sms,
+                             args=(scheduled_time, users, ncontent)).start()
+
+            return jsonify({'message': 'SMS scheduled successfully'}), 202
+        except Exception as e:
+            logging.error(f"Error in schedule_sms_endpoint: {e}")
             return jsonify({'error': 'Internal server error'}), 500
 
     @app.route('/send-sms', methods=['POST'])
