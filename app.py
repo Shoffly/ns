@@ -185,7 +185,7 @@ def app():
             logging.error('Login failed')
             return
 
-        with ThreadPoolExecutor(max_workers=15) as executor:
+        with ThreadPoolExecutor(max_workers=25) as executor:
             futures = [executor.submit(send_notification, user, ntitle, ncontent, ncamp) for user in users]
             for future in as_completed(futures):
                 future.result()
@@ -227,7 +227,7 @@ def app():
             return str(e)
 
     def process_sms(users, smscontent):
-        with ThreadPoolExecutor(max_workers=15) as executor:
+        with ThreadPoolExecutor(max_workers=25) as executor:
             futures = [executor.submit(send_sms, smscontent, user) for user in users]
             for future in as_completed(futures):
                 future.result()
