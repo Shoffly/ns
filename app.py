@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 import requests
 import threading
-import smtplib
-import ssl
-from email.message import EmailMessage
+import resend
+import csv
+import io
+import base64
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from supabase import create_client, Client
@@ -98,88 +99,116 @@ def app():
             else:
                 log_notification(user["user_id"], personalized_title, personalized_content, ncamp)
 
-    def sendemail(ncamp, ntitle, ncontent, nsize):
+    def sendemail(ncamp, ntitle, ncontent, nsize, users):
         try:
-            email_sender = 'sunnymoh44@gmail.com'
-            email_p = 'qywokurzqrfpcufp'
-            email_to = 'yara.elkassabi@cilantrocafe.net'
+            resend.api_key = "re_b5ZpKezD_C7tDvbcJt8xbqYeUz4J8wkwh"
+
             subject = f'Auto Notification report - {ncamp}'
             body = f'''
-           <html>
-  <head>
-    <style>
-      body {{
-          font-family: "Open Sans", sans-serif;
-        background-color: #333;
-        color: #fff;
-      }}
-      .title {{
-  font-size: 2em;
-  margin-bottom: 10px;
-  color: white; /* Set the text color of the title */
-  text-decoration: underline;
-  text-decoration-color: #4caf50;
-}}
-
-      .card {{
-        background-color: rgba(0, 0, 0, 0.8);
-        padding: 2rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        width: 300px;
-        margin: 2rem auto;
-      }}
-      .card p {{
-        margin-bottom: 0.5rem;
-      }}
-      .card strong {{
-        font-weight: 700;
-      }}
-      .card a {{
-        color: #4caf50;
-        text-decoration: none;
-      }}
-      .card a:hover {{
-        text-decoration: underline;
-      }}
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <h1 class="title">Campaign reciept</h1>
-      <h3>Hey Yara,</h3>
-      <p>Below are the details of your campaign:</p>
-      <table>
-        <tr>
-          <td><strong>Title:</strong></td>
-          <td>{ntitle}</td>
-        </tr>
-        <tr>
-          <td><strong>Content:</strong></td>
-          <td>{ncontent}</td>
-        </tr>
-        <tr>
-          <td><strong>Audience Size:</strong></td>
-          <td>{nsize}</td>
-        </tr>
-      </table>
-      <p>Thank you!</p>
-      <p>Best regards,</p>
-      <p>Galil</p>
+            <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Receipt</title>
+  <style>
+    body{{ font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }}
+    .container{{ max-width: 600px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }}
+    .header{{ text-align: center; margin-bottom: 20px; }}
+    .header img{{ max-width: 100%; height: auto; border-radius: 8px; }}
+    .content{{ padding: 20px; }}
+    .title{{ font-size: 24px; color: #333; margin-bottom: 10px; text-decoration: underline; text-decoration-color: #4caf50; }}
+    .card{{ background-color: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+    .card p{{ margin-bottom: 10px; }}
+    .card strong{{ font-weight: bold; }}
+    .footer{{ text-align: center; color: #777; font-size: 14px; margin-top: 20px; }}
+    @media (max-width: 600px) {{
+      .container{{ margin: 10px; padding: 10px; }}
+      .header img{{ border-radius: 4px; }}
+      .content{{ padding: 10px; }}
+      .title{{ font-size: 20px; }}
+      .card{{ padding: 10px; }}
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://cilantroretail.s3.ap-south-1.amazonaws.com/main/Nonito.png" alt="Campaign Image">
     </div>
-  </body>
+
+    <div class="content">
+      <h1 class="title">Campaign Receipt</h1>
+
+      <div class="card">
+        <h3>Hey,</h3>
+        <p>Below are the details of your campaign:</p>
+
+        <table style="width: 100%;">
+         <tr>
+            <td style="font-weight: bold;">Type:</td>
+            <td>notification</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">Title:</td>
+            <td>{ ntitle }</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">Content:</td>
+            <td>{ ncontent }</td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold;">Audience Size:</td>
+            <td>{ nsize }</td>
+          </tr>
+        </table>
+
+        <p>Thank you!</p>
+        <p>Until next time,</p>
+        <p>Nonito</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      &copy; 2024 Nonito. All rights reserved.
+    </div>
+  </div>
+</body>
 </html>
+
             '''
-            em = EmailMessage()
-            em['From'] = email_sender
-            em['To'] = email_to
-            em['Subject'] = subject
-            em.add_alternative(body, subtype='html')
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-                smtp.login(email_sender, email_p)
-                smtp.sendmail(email_sender, email_to, em.as_string())
-            logging.info('Email sent successfully!')
+
+            # Create CSV file in memory
+            csv_buffer = io.StringIO()
+            csv_writer = csv.writer(csv_buffer)
+            csv_writer.writerow(["User ID", "First Name", "Favorite Item"])  # CSV Header
+            for user in users:
+                csv_writer.writerow([user["user_id"], user["first_name"], user["fav_item"]])
+
+            # Encode CSV content to base64
+            csv_content = csv_buffer.getvalue().encode('utf-8')
+            csv_base64 = base64.b64encode(csv_content).decode('utf-8')
+
+            params = {
+                "from": "campaigns@nonito.xyz",
+                "to": ["yara.elkassabi@cilantrocafe.net","mohammed09ahmed@gmail.com"],
+                "subject": subject,
+                "html": body,
+                "headers": {
+                    "X-Entity-Ref-ID": "123456789"
+                },
+                "attachments": [
+                    {
+                        "filename": f"{ncamp}_recipients.csv",
+                        "content": csv_base64,
+                        "type": "text/csv"
+                    }
+                ]
+            }
+
+            email = resend.Emails.send(params)
+            logging.info('Email sent successfully with attachment!')
+            logging.debug(email)
         except Exception as e:
             logging.error(f"Error sending email: {e}")
 
@@ -193,7 +222,7 @@ def app():
             for future in as_completed(futures):
                 future.result()
 
-        sendemail(ncamp, ntitle, ncontent, len(users))
+        sendemail(ncamp, ntitle, ncontent, len(users), users)
 
     def schedule_notification(scheduled_time, users, ntitle, ncontent, ncamp):
         try:
