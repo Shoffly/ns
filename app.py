@@ -191,7 +191,7 @@ def app():
 
             params = {
                 "from": "campaigns@nonito.xyz",
-                "to": ["yara.elkassabi@cilantrocafe.net","mohammed09ahmed@gmail.com"],
+                "to": ["mohammed09ahmed@gmail.com"],
                 "subject": subject,
                 "html": body,
                 "headers": {
